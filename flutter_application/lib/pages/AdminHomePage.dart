@@ -1,26 +1,62 @@
 import 'package:flutter/material.dart';
-import 'login_page.dart';
+// ignore: depend_on_referenced_packages
+import 'package:flutter_application/pages/login_page.dart'; // adjust to your real path
 
 class AdminHomePage extends StatefulWidget {
   const AdminHomePage({super.key});
+
   @override
-  State<AdminHomePage> createState() => _AdminHomePage();
+  State<AdminHomePage> createState() => _AdminHomePageState();
 }
 
-class _AdminHomePage extends State<AdminHomePage> {
-  int _selectedIndex = 0;
-  final List<String> titles = ['Dashboard', 'Stock', 'Settings'];
+class _AdminHomePageState extends State<AdminHomePage> {
+  String _selectedPage = "Dashboard";
 
-  final List<Widget> _pages = [
-    Center(child: Text('dashboard page')),
-    Center(child: Text('Storage page')),
-    Center(child: Text('setting page')),
-  ];
+  Widget getPageContent() {
+    switch (_selectedPage) {
+      case "Dashboard":
+        return const Center(child: Text("Welcome to Dashboard!"));
+      case "Stock":
+        return const Center(child: Text("Manage your stock here."));
+      case "Orders":
+        return const Center(child: Text("Orders overview."));
+      default:
+        return const Center(child: Text("Unknown page"));
+    }
+  }
+
+  void _confirmSignOut() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Confirm Logout"),
+        content: const Text("Are you sure you want to sign out?"),
+        actions: [
+          TextButton(
+            child: const Text("Cancel"),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Sign Out"),
+            onPressed: () {
+              Navigator.pop(ctx); // Close dialog
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: _pages[_selectedIndex],
+        title: Text(_selectedPage),
         backgroundColor: Colors.grey[700],
       ),
       drawer: Drawer(
@@ -30,88 +66,44 @@ class _AdminHomePage extends State<AdminHomePage> {
             const DrawerHeader(
               decoration: BoxDecoration(color: Colors.grey),
               child: Text(
-                'Admin menu',
-                style: TextStyle(color: Colors.white, fontSize: 24),
+                "Admin Panel",
+                style: TextStyle(fontSize: 24, color: Colors.white),
               ),
             ),
             ListTile(
               leading: const Icon(Icons.dashboard),
-              title: Text('Dashboard'),
-              selected: _selectedIndex == 0,
+              title: const Text("Dashboard"),
               onTap: () {
-                setState(() {
-                  _selectedIndex = 0;
-                });
+                setState(() => _selectedPage = "Dashboard");
                 Navigator.pop(context);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.storage),
-              title: Text('Storage'),
-              selected: _selectedIndex == 1,
+              leading: const Icon(Icons.inventory),
+              title: const Text("Stock"),
               onTap: () {
-                setState(() {
-                  _selectedIndex = 1;
-                });
+                setState(() => _selectedPage = "Stock");
                 Navigator.pop(context);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.settings),
-              title: Text('Settings'),
-              selected: _selectedIndex == 2,
+              leading: const Icon(Icons.shopping_cart),
+              title: const Text("Orders"),
               onTap: () {
-                setState(() {
-                  _selectedIndex = 2;
-                });
+                setState(() => _selectedPage = "Orders");
                 Navigator.pop(context);
               },
             ),
+            const Divider(),
             ListTile(
               leading: const Icon(Icons.logout),
-              title: const Text('Sign Out'),
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Confirm Sign Out'),
-                    content: const Text('Are you sure you want to sign out?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(
-                            context,
-                          ).pop(); // ❌ Cancel, just close dialog
-                        },
-                        child: const Text('Cancel'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pop(); // Close the dialog
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const LoginPage(),
-                            ),
-                          ); // ✅ Sign out
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[700],
-                        ),
-                        child: const Text(
-                          'Sign Out',
-                          style: TextStyle(color: Colors.black),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+              title: const Text("Sign Out"),
+              onTap: _confirmSignOut,
             ),
           ],
         ),
       ),
-      body: _pages[_selectedIndex],
+      body: getPageContent(),
     );
   }
 }

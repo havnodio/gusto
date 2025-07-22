@@ -65,9 +65,8 @@ class _LoginPageState extends State<LoginPage> {
                     const SnackBar(content: Text("Please fill all fields")),
                   );
                 } else {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text("Welcome, $email")));
+                  Navigator.pushReplacementNamed(context, '/admin');
+
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
