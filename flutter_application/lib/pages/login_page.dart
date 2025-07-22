@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application/pages/AdminHomePage.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -67,7 +68,14 @@ class _LoginPageState extends State<LoginPage> {
                   ScaffoldMessenger.of(
                     context,
                   ).showSnackBar(SnackBar(content: Text("Welcome, $email")));
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AdminHomePage(),
+                    ),
+                  );
                 }
+                ;
               },
               child: const Text("Se connecter", style: TextStyle(fontSize: 15)),
             ),
