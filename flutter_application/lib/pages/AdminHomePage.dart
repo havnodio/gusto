@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-// ignore: depend_on_referenced_packages
-import 'package:flutter_application/pages/login_page.dart'; // adjust to your real path
+import 'package:flutter_application/pages/home_page.dart';
+import 'package:flutter_application/pages/stock_page.dart';
 
 class AdminHomePage extends StatefulWidget {
   const AdminHomePage({super.key});
@@ -17,7 +17,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
       case "Dashboard":
         return const Center(child: Text("Welcome to Dashboard!"));
       case "Stock":
-        return const Center(child: Text("Manage your stock here."));
+        return const StockPage();
       case "Orders":
         return const Center(child: Text("Orders overview."));
       default:
@@ -43,7 +43,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
               Navigator.pop(ctx); // Close dialog
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const LoginPage()),
+                MaterialPageRoute(builder: (_) => const HomePage()),
               );
             },
           ),
