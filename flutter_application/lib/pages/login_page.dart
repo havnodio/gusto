@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application/pages/AdminHomePage.dart';
 
 class LoginPage extends StatefulWidget {
@@ -11,6 +14,59 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  bool isLoading = false;
+  String? errorMessage;
+
+  Future<void> _signIn() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      setState(() {
+        errorMessage = 'Veuillez remplir tous les champs';
+      });
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://flutter-backend-g7p6.onrender.com/api/users/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final token = data['token'];
+
+        // Save token
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('jwt_token', token);
+
+        // Navigate to AdminHomePage
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const AdminHomePage()),
+        );
+      } else {
+        setState(() {
+          errorMessage =
+              jsonDecode(response.body)['message'] ?? 'Échec de la connexion';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Erreur: $e';
+      });
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -23,7 +79,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Login"),
+        title: const Text('Connexion'),
         backgroundColor: Colors.grey[700],
       ),
       body: SingleChildScrollView(
@@ -33,56 +89,66 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(height: 100),
             TextField(
               controller: emailController,
-              decoration: const InputDecoration(
-                labelText: "Username or Email",
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: 'Email',
+                border: const OutlineInputBorder(),
+                errorText: errorMessage != null && emailController.text.isEmpty
+                    ? 'Champ requis'
+                    : null,
               ),
+              keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 20),
             TextField(
               controller: passwordController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: "Password",
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: 'Mot de passe',
+                border: const OutlineInputBorder(),
+                errorText:
+                    errorMessage != null && passwordController.text.isEmpty
+                    ? 'Champ requis'
+                    : null,
               ),
             ),
+            if (errorMessage != null &&
+                emailController.text.isNotEmpty &&
+                passwordController.text.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Text(errorMessage!, style: const TextStyle(color: Colors.red)),
+            ],
             const SizedBox(height: 30),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 30,
-                  vertical: 14,
-                ),
-              ),
-              onPressed: () {
-                final email = emailController.text;
-                final password = passwordController.text;
-                if (email.isEmpty || password.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Please fill all fields")),
-                  );
-                } else {
-                  Navigator.pushReplacementNamed(context, '/admin');
-
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AdminHomePage(),
+            isLoading
+                ? const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                  )
+                : ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 30,
+                        vertical: 14,
+                      ),
                     ),
-                  );
-                }
-                ;
-              },
-              child: const Text("Se connecter", style: TextStyle(fontSize: 15)),
-            ),
+                    onPressed: _signIn,
+                    child: const Text(
+                      'Se connecter',
+                      style: TextStyle(fontSize: 15),
+                    ),
+                  ),
+            const SizedBox(height: 16),
             TextButton(
               onPressed: () {
                 Navigator.pushNamed(context, '/forgot');
               },
-              child: const Text("Password forgotten"),
+              child: const Text('Mot de passe oublié'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/request_account');
+              },
+              child: const Text('Créer un compte'),
             ),
           ],
         ),
