@@ -59,7 +59,7 @@ class _RequestAccountPageState extends State<RequestAccountPage> {
     try {
       final response = await http.post(
         Uri.parse(
-          'https://flutter-backend-g7p6.onrender.com/api/users/register',
+          'https://flutter-backend-xhrw.onrender.com/api/users/register',
         ),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({

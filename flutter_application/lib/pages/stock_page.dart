@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application/pages/AdminHomePage.dart';
 
 class StockPage extends StatefulWidget {
@@ -13,13 +14,20 @@ class StockPage extends StatefulWidget {
 class _StockPageState extends State<StockPage> {
   List<Map<String, dynamic>> products = [];
   final String apiUrl =
-      'https://flutter-backend-g7p6.onrender.com/api/products';
+      'https://flutter-backend-xhrw.onrender.com/api/products';
   bool isLoading = false;
+
+  Future<Map<String, String>> _getHeaders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+    return {'Content-Type': 'application/json', 'Authorization': token ?? ''};
+  }
 
   Future<void> _fetchProducts() async {
     setState(() => isLoading = true);
     try {
-      final response = await http.get(Uri.parse(apiUrl));
+      final headers = await _getHeaders();
+      final response = await http.get(Uri.parse(apiUrl), headers: headers);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as List;
         setState(() {
@@ -46,9 +54,10 @@ class _StockPageState extends State<StockPage> {
   Future<void> _addProduct(String name, int quantity) async {
     setState(() => isLoading = true);
     try {
+      final headers = await _getHeaders();
       final response = await http.post(
         Uri.parse(apiUrl),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode({'name': name, 'quantity': quantity}),
       );
       if (response.statusCode == 201) {
@@ -66,9 +75,10 @@ class _StockPageState extends State<StockPage> {
   Future<void> _editProduct(String id, String newName, int newQuantity) async {
     setState(() => isLoading = true);
     try {
+      final headers = await _getHeaders();
       final response = await http.put(
         Uri.parse('$apiUrl/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode({'name': newName, 'quantity': newQuantity}),
       );
       if (response.statusCode == 200) {
@@ -106,7 +116,11 @@ class _StockPageState extends State<StockPage> {
 
     setState(() => isLoading = true);
     try {
-      final response = await http.delete(Uri.parse('$apiUrl/$id'));
+      final headers = await _getHeaders();
+      final response = await http.delete(
+        Uri.parse('$apiUrl/$id'),
+        headers: headers,
+      );
       if (response.statusCode == 200) {
         await _fetchProducts();
         _showError('Product deleted successfully', isError: false);
