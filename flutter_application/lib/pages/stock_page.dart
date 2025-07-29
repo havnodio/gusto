@@ -4,30 +4,39 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application/pages/AdminHomePage.dart';
 
-class StockPage extends StatefulWidget {
-  const StockPage({super.key});
+class ProductsPage extends StatefulWidget {
+  const ProductsPage({super.key});
 
   @override
-  State<StockPage> createState() => _StockPageState();
+  State<ProductsPage> createState() => _ProductsPageState();
 }
 
-class _StockPageState extends State<StockPage> {
+class _ProductsPageState extends State<ProductsPage> {
   List<Map<String, dynamic>> products = [];
-  final String apiUrl =
-      'https://flutter-backend-xhrw.onrender.com/api/products';
   bool isLoading = false;
+  final String apiUrl = 'https://flutter-backend-xhrw.onrender.com';
 
   Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
-    return {'Content-Type': 'application/json', 'Authorization': token ?? ''};
+    if (token == null) {
+      print('No JWT token found');
+      throw Exception('No JWT token found');
+    }
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
   }
 
   Future<void> _fetchProducts() async {
     setState(() => isLoading = true);
     try {
       final headers = await _getHeaders();
-      final response = await http.get(Uri.parse(apiUrl), headers: headers);
+      final response = await http.get(
+        Uri.parse('$apiUrl/api/products'),
+        headers: headers,
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as List;
         setState(() {
@@ -51,17 +60,19 @@ class _StockPageState extends State<StockPage> {
     }
   }
 
-  Future<void> _addProduct(String name, int quantity) async {
+  Future<void> _addProduct(Map<String, dynamic> productData) async {
     setState(() => isLoading = true);
     try {
       final headers = await _getHeaders();
+      final body = jsonEncode(productData);
       final response = await http.post(
-        Uri.parse(apiUrl),
+        Uri.parse('$apiUrl/api/products'),
         headers: headers,
-        body: jsonEncode({'name': name, 'quantity': quantity}),
+        body: body,
       );
       if (response.statusCode == 201) {
         await _fetchProducts();
+        _showError('Produit ajouté avec succès', isError: false);
       } else {
         _showError('Error adding product: ${response.statusCode}');
       }
@@ -72,17 +83,19 @@ class _StockPageState extends State<StockPage> {
     }
   }
 
-  Future<void> _editProduct(String id, String newName, int newQuantity) async {
+  Future<void> _editProduct(String id, Map<String, dynamic> productData) async {
     setState(() => isLoading = true);
     try {
       final headers = await _getHeaders();
+      final body = jsonEncode(productData);
       final response = await http.put(
-        Uri.parse('$apiUrl/$id'),
+        Uri.parse('$apiUrl/api/products/$id'),
         headers: headers,
-        body: jsonEncode({'name': newName, 'quantity': newQuantity}),
+        body: body,
       );
       if (response.statusCode == 200) {
         await _fetchProducts();
+        _showError('Produit modifié avec succès', isError: false);
       } else {
         _showError('Error editing product: ${response.statusCode}');
       }
@@ -98,7 +111,7 @@ class _StockPageState extends State<StockPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirm Delete'),
-        content: Text('Are you sure you want to delete "$name"?'),
+        content: Text('Delete product "$name"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -118,12 +131,12 @@ class _StockPageState extends State<StockPage> {
     try {
       final headers = await _getHeaders();
       final response = await http.delete(
-        Uri.parse('$apiUrl/$id'),
+        Uri.parse('$apiUrl/api/products/$id'),
         headers: headers,
       );
       if (response.statusCode == 200) {
         await _fetchProducts();
-        _showError('Product deleted successfully', isError: false);
+        _showError('Produit supprimé avec succès', isError: false);
       } else {
         _showError('Error deleting product: ${response.statusCode}');
       }
@@ -144,132 +157,61 @@ class _StockPageState extends State<StockPage> {
     );
   }
 
-  void _showAddDialog() {
-    final nameController = TextEditingController();
-    final quantityController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text(
-          'Add Product',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: InputDecoration(
-                labelText: 'Product Name',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: quantityController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Quantity',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final name = nameController.text.trim();
-              final quantity = int.tryParse(quantityController.text) ?? 0;
-              if (name.isNotEmpty && quantity > 0) {
-                await _addProduct(name, quantity);
-                Navigator.pop(context);
-              } else {
-                _showError('Please enter valid product name and quantity');
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('Add', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEditDialog(int index) {
-    final nameController = TextEditingController(text: products[index]['name']);
+  Future<void> _showAddEditDialog({Map<String, dynamic>? product}) async {
+    final nameController = TextEditingController(text: product?['name']);
     final quantityController = TextEditingController(
-      text: products[index]['quantity'].toString(),
+      text: product?['quantity'].toString(),
     );
 
-    showDialog(
+    await showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text(
-          'Edit Product',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: InputDecoration(
-                labelText: 'Product Name',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+      builder: (context) => AlertDialog(
+        title: Text(product == null ? 'Add Product' : 'Edit Product'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Name *'),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: quantityController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Quantity',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+              TextFormField(
+                controller: quantityController,
+                decoration: const InputDecoration(labelText: 'Quantity *'),
+                keyboardType: TextInputType.number,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              final name = nameController.text.trim();
-              final quantity = int.tryParse(quantityController.text) ?? 0;
-              if (name.isNotEmpty && quantity > 0) {
-                await _editProduct(products[index]['_id'], name, quantity);
-                Navigator.pop(context);
+          TextButton(
+            onPressed: () {
+              if (nameController.text.isEmpty ||
+                  quantityController.text.isEmpty) {
+                _showError('Name and quantity are required');
+                return;
+              }
+              final quantity = int.tryParse(quantityController.text);
+              if (quantity == null || quantity < 0) {
+                _showError('Invalid quantity');
+                return;
+              }
+              Navigator.pop(context);
+              final productData = {
+                'name': nameController.text,
+                'quantity': quantity,
+              };
+              if (product == null) {
+                _addProduct(productData);
               } else {
-                _showError('Please enter valid product name and quantity');
+                _editProduct(product['_id'], productData);
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
+            child: const Text('Save', style: TextStyle(color: Colors.teal)),
           ),
         ],
       ),
@@ -287,11 +229,10 @@ class _StockPageState extends State<StockPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Stock Management',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          'Products',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.teal,
-        elevation: 4,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
@@ -303,11 +244,7 @@ class _StockPageState extends State<StockPage> {
         ),
       ),
       body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
-              ),
-            )
+          ? const Center(child: CircularProgressIndicator(color: Colors.teal))
           : products.isEmpty
           ? const Center(
               child: Column(
@@ -329,7 +266,7 @@ class _StockPageState extends State<StockPage> {
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: products.length,
-              itemBuilder: (_, index) {
+              itemBuilder: (context, index) {
                 final product = products[index];
                 return Card(
                   elevation: 2,
@@ -349,16 +286,13 @@ class _StockPageState extends State<StockPage> {
                         fontSize: 16,
                       ),
                     ),
-                    subtitle: Text(
-                      'Quantity: ${product['quantity']}',
-                      style: const TextStyle(color: Colors.grey),
-                    ),
+                    subtitle: Text('Quantity: ${product['quantity']}'),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
                           icon: const Icon(Icons.edit, color: Colors.teal),
-                          onPressed: () => _showEditDialog(index),
+                          onPressed: () => _showAddEditDialog(product: product),
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
@@ -372,11 +306,9 @@ class _StockPageState extends State<StockPage> {
               },
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddDialog,
+        onPressed: () => _showAddEditDialog(),
         backgroundColor: Colors.teal,
-        elevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: const Icon(Icons.add, color: Colors.white, size: 30),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

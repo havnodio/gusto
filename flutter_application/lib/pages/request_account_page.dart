@@ -1,61 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter_application/pages/login_page.dart';
+import 'package:flutter_application/pages/Login_Page.dart';
 
-class RequestAccountPage extends StatefulWidget {
-  const RequestAccountPage({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<RequestAccountPage> createState() => _RequestAccountPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RequestAccountPageState extends State<RequestAccountPage> {
-  final nameController = TextEditingController();
-  final surnameController = TextEditingController();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  final confirmPasswordController = TextEditingController();
+class _RegisterPageState extends State<RegisterPage> {
+  final _formKey = GlobalKey<FormState>();
+  String name = '';
+  String surname = '';
+  String email = '';
+  String password = '';
   bool isLoading = false;
-  String? errorMessage;
 
-  Future<void> _signUp() async {
-    final name = nameController.text.trim();
-    final surname = surnameController.text.trim();
-    final email = emailController.text.trim();
-    final password = passwordController.text;
-    final confirmPassword = confirmPasswordController.text;
+  Future<void> _register() async {
+    if (!_formKey.currentState!.validate()) return;
 
-    if (name.isEmpty ||
-        surname.isEmpty ||
-        email.isEmpty ||
-        password.isEmpty ||
-        confirmPassword.isEmpty) {
-      setState(() {
-        errorMessage = 'Veuillez remplir tous les champs';
-      });
-      return;
-    }
-
-    if (password != confirmPassword) {
-      setState(() {
-        errorMessage = 'Les mots de passe ne correspondent pas';
-      });
-      return;
-    }
-
-    if (password.length < 8) {
-      setState(() {
-        errorMessage = 'Le mot de passe doit contenir au moins 8 caractères';
-      });
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-      errorMessage = null;
-    });
-
+    setState(() => isLoading = true);
     try {
       final response = await http.post(
         Uri.parse(
@@ -63,161 +29,144 @@ class _RequestAccountPageState extends State<RequestAccountPage> {
         ),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'name': name,
-          'surname': surname,
-          'email': email,
+          'name': name.trim(),
+          'surname': surname.trim(),
+          'email': email.trim(),
           'password': password,
         }),
       );
-
+      print(
+        'Register request: {"name": "$name", "surname": "$surname", "email": "$email", "password": "[hidden]"}',
+      );
+      print('Register response: ${response.statusCode} - ${response.body}');
       if (response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Compte créé avec succès ! Veuillez vous connecter.'),
-          ),
+        _showMessage(
+          'Demande de compte soumise, en attente d\'approbation',
+          isError: false,
         );
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const LoginPage()),
         );
       } else {
-        setState(() {
-          errorMessage =
-              jsonDecode(response.body)['message'] ??
-              'Échec de la création du compte';
-        });
+        _showMessage(
+          'Erreur: ${jsonDecode(response.body)['message'] ?? response.statusCode}',
+        );
       }
     } catch (e) {
-      setState(() {
-        errorMessage = 'Erreur: $e';
-      });
+      _showMessage('Erreur: $e');
     } finally {
       setState(() => isLoading = false);
     }
   }
 
-  @override
-  void dispose() {
-    nameController.dispose();
-    surnameController.dispose();
-    emailController.dispose();
-    passwordController.dispose();
-    confirmPasswordController.dispose();
-    super.dispose();
+  void _showMessage(String message, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Créer un compte', style: TextStyle(fontSize: 24)),
-        backgroundColor: Colors.grey[700],
+        title: const Text(
+          'Register',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.teal,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            const SizedBox(height: 30),
-            TextField(
-              controller: nameController,
-              decoration: InputDecoration(
-                labelText: 'Nom',
-                border: const OutlineInputBorder(),
-                errorText: errorMessage != null && nameController.text.isEmpty
-                    ? 'Champ requis'
-                    : null,
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Name *',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                validator: (value) =>
+                    value!.isEmpty ? 'Name is required' : null,
+                onChanged: (value) => name = value,
               ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: surnameController,
-              decoration: InputDecoration(
-                labelText: 'Prénom',
-                border: const OutlineInputBorder(),
-                errorText:
-                    errorMessage != null && surnameController.text.isEmpty
-                    ? 'Champ requis'
-                    : null,
+              const SizedBox(height: 12),
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Surname *',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                validator: (value) =>
+                    value!.isEmpty ? 'Surname is required' : null,
+                onChanged: (value) => surname = value,
               ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: emailController,
-              decoration: InputDecoration(
-                labelText: 'Email',
-                border: const OutlineInputBorder(),
-                errorText: errorMessage != null && emailController.text.isEmpty
-                    ? 'Champ requis'
+              const SizedBox(height: 12),
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Email *',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                validator: (value) => value!.isEmpty || !value.contains('@')
+                    ? 'Valid email is required'
                     : null,
+                onChanged: (value) => email = value,
               ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'Mot de passe',
-                border: const OutlineInputBorder(),
-                errorText:
-                    errorMessage != null && passwordController.text.isEmpty
-                    ? 'Champ requis'
+              const SizedBox(height: 12),
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Password *',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                obscureText: true,
+                validator: (value) => value!.length < 6
+                    ? 'Password must be at least 6 characters'
                     : null,
+                onChanged: (value) => password = value,
               ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: confirmPasswordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'Confirmer votre mot de passe',
-                border: const OutlineInputBorder(),
-                errorText:
-                    errorMessage != null &&
-                        confirmPasswordController.text.isEmpty
-                    ? 'Champ requis'
-                    : null,
-              ),
-            ),
-            if (errorMessage != null &&
-                nameController.text.isNotEmpty &&
-                surnameController.text.isNotEmpty &&
-                emailController.text.isNotEmpty &&
-                passwordController.text.isNotEmpty &&
-                confirmPasswordController.text.isNotEmpty) ...[
               const SizedBox(height: 20),
-              Text(errorMessage!, style: const TextStyle(color: Colors.red)),
-            ],
-            const SizedBox(height: 30),
-            isLoading
-                ? const CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
-                  )
-                : ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 30,
-                        vertical: 14,
+              isLoading
+                  ? const CircularProgressIndicator(color: Colors.teal)
+                  : ElevatedButton(
+                      onPressed: _register,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Submit Request',
+                        style: TextStyle(color: Colors.white),
                       ),
                     ),
-                    onPressed: _signUp,
-                    child: const Text(
-                      'Créer',
-                      style: TextStyle(fontSize: 22, color: Colors.white),
-                    ),
-                  ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginPage()),
-                );
-              },
-              child: const Text('Déjà un compte ? Se connecter'),
-            ),
-          ],
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginPage()),
+                  );
+                },
+                child: const Text(
+                  'Already have an account? Login here',
+                  style: TextStyle(color: Colors.teal),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

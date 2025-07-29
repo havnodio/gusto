@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_application/pages/AdminHomePage.dart';
 
 class OrdersPage extends StatefulWidget {
@@ -17,11 +18,7 @@ class _OrdersPageState extends State<OrdersPage> {
   List<Map<String, dynamic>> products = [];
   List<Map<String, dynamic>> clients = [];
   bool isLoading = false;
-  final String apiUrl = 'https://flutter-backend-xhrw.onrender.com/api/orders';
-  final String productsApiUrl =
-      'https://flutter-backend-xhrw.onrender.com/api/products';
-  final String clientsApiUrl =
-      'https://flutter-backend-xhrw.onrender.com/api/clients';
+  final String apiUrl = 'https://flutter-backend-xhrw.onrender.com';
 
   Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
@@ -40,7 +37,10 @@ class _OrdersPageState extends State<OrdersPage> {
     setState(() => isLoading = true);
     try {
       final headers = await _getHeaders();
-      final response = await http.get(Uri.parse(apiUrl), headers: headers);
+      final response = await http.get(
+        Uri.parse('$apiUrl/api/orders'),
+        headers: headers,
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as List;
         setState(() {
@@ -48,7 +48,9 @@ class _OrdersPageState extends State<OrdersPage> {
               .map(
                 (item) => {
                   '_id': item['_id'],
+                  'productId': item['productId']['_id'],
                   'productName': item['productId']['name'],
+                  'clientId': item['clientId']['_id'],
                   'clientName': item['clientId']['fullName'],
                   'deliveryDate': item['deliveryDate'],
                   'paymentType': item['paymentType'],
@@ -68,75 +70,56 @@ class _OrdersPageState extends State<OrdersPage> {
   }
 
   Future<void> _fetchProductsAndClients() async {
-    setState(() => isLoading = true);
     try {
       final headers = await _getHeaders();
-      final productsResponse = await http.get(
-        Uri.parse(productsApiUrl),
+      final productResponse = await http.get(
+        Uri.parse('$apiUrl/api/products'),
         headers: headers,
       );
-      if (productsResponse.statusCode == 200) {
-        final productsData = jsonDecode(productsResponse.body) as List;
+      final clientResponse = await http.get(
+        Uri.parse('$apiUrl/api/clients'),
+        headers: headers,
+      );
+      if (productResponse.statusCode == 200 &&
+          clientResponse.statusCode == 200) {
         setState(() {
-          products = productsData
-              .map(
-                (item) => {
-                  '_id': item['_id'],
-                  'name': item['name'],
-                  'quantity': item['quantity'],
-                },
-              )
+          products = (jsonDecode(productResponse.body) as List)
+              .map((item) => {'_id': item['_id'], 'name': item['name']})
               .toList();
-        });
-      }
-      final clientsResponse = await http.get(
-        Uri.parse(clientsApiUrl),
-        headers: headers,
-      );
-      if (clientsResponse.statusCode == 200) {
-        final clientsData = jsonDecode(clientsResponse.body) as List;
-        setState(() {
-          clients = clientsData
+          clients = (jsonDecode(clientResponse.body) as List)
               .map((item) => {'_id': item['_id'], 'fullName': item['fullName']})
               .toList();
         });
+      } else {
+        _showError('Error fetching products or clients');
       }
     } catch (e) {
       _showError('Error fetching products or clients: $e');
-    } finally {
-      setState(() => isLoading = false);
     }
   }
 
-  Future<void> _addOrder(
-    String productId,
-    String clientId,
-    String deliveryDate,
-    String paymentType,
-  ) async {
+  Future<void> _addOrder(Map<String, dynamic> orderData) async {
     setState(() => isLoading = true);
     try {
       final headers = await _getHeaders();
-      final body = {
-        'productId': productId,
-        'clientId': clientId,
-        'deliveryDate': deliveryDate,
-        'paymentType': paymentType,
-      };
+      final body = jsonEncode({
+        'productId': orderData['productId'],
+        'clientId': orderData['clientId'],
+        'deliveryDate': orderData['deliveryDate'],
+        'paymentType': orderData['paymentType'],
+      });
       print('Adding order with body: $body');
       final response = await http.post(
-        Uri.parse(apiUrl),
+        Uri.parse('$apiUrl/api/orders'),
         headers: headers,
-        body: jsonEncode(body),
+        body: body,
       );
       print('Response: ${response.statusCode} - ${response.body}');
       if (response.statusCode == 201) {
         await _fetchOrders();
         _showError('Commande ajoutée avec succès', isError: false);
       } else {
-        _showError(
-          'Error adding order: ${response.statusCode} - ${response.body}',
-        );
+        _showError('Error adding order: ${response.statusCode}');
       }
     } catch (e) {
       _showError('Error adding order: $e');
@@ -145,30 +128,24 @@ class _OrdersPageState extends State<OrdersPage> {
     }
   }
 
-  Future<void> _editOrder(
-    String id,
-    String productId,
-    String clientId,
-    String deliveryDate,
-    String paymentType,
-    String status,
-  ) async {
+  Future<void> _editOrder(String id, Map<String, dynamic> orderData) async {
     setState(() => isLoading = true);
     try {
       final headers = await _getHeaders();
-      final body = {
-        'productId': productId,
-        'clientId': clientId,
-        'deliveryDate': deliveryDate,
-        'paymentType': paymentType,
-        'status': status,
-      };
+      final body = jsonEncode({
+        'productId': orderData['productId'],
+        'clientId': orderData['clientId'],
+        'deliveryDate': orderData['deliveryDate'],
+        'paymentType': orderData['paymentType'],
+        'status': orderData['status'],
+      });
       print('Editing order with body: $body');
       final response = await http.put(
-        Uri.parse('$apiUrl/$id'),
+        Uri.parse('$apiUrl/api/orders/$id'),
         headers: headers,
-        body: jsonEncode(body),
+        body: body,
       );
+      print('Response: ${response.statusCode} - ${response.body}');
       if (response.statusCode == 200) {
         await _fetchOrders();
         _showError('Commande modifiée avec succès', isError: false);
@@ -211,7 +188,7 @@ class _OrdersPageState extends State<OrdersPage> {
     try {
       final headers = await _getHeaders();
       final response = await http.delete(
-        Uri.parse('$apiUrl/$id'),
+        Uri.parse('$apiUrl/api/orders/$id'),
         headers: headers,
       );
       if (response.statusCode == 200) {
@@ -227,305 +204,6 @@ class _OrdersPageState extends State<OrdersPage> {
     }
   }
 
-  void _showAddOrderDialog() {
-    String? selectedProductId;
-    String? selectedClientId;
-    DateTime? selectedDate;
-    String? selectedPaymentType;
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text(
-          'Add New Order',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: StatefulBuilder(
-          builder: (context, setState) => SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: 'Product *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  items: products
-                      .where((p) => p['quantity'] > 0)
-                      .map<DropdownMenuItem<String>>(
-                        (product) => DropdownMenuItem<String>(
-                          value: product['_id'] as String,
-                          child: Text(
-                            '${product['name']} (Stock: ${product['quantity']})',
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  value: selectedProductId,
-                  onChanged: (value) =>
-                      setState(() => selectedProductId = value),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: 'Client *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  items: clients
-                      .map<DropdownMenuItem<String>>(
-                        (client) => DropdownMenuItem<String>(
-                          value: client['_id'] as String,
-                          child: Text(client['fullName']),
-                        ),
-                      )
-                      .toList(),
-                  value: selectedClientId,
-                  onChanged: (value) =>
-                      setState(() => selectedClientId = value),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () async {
-                    final pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                    );
-                    if (pickedDate != null) {
-                      setState(() => selectedDate = pickedDate);
-                    }
-                  },
-                  child: Text(
-                    selectedDate == null
-                        ? 'Select Delivery Date *'
-                        : 'Delivery: ${DateFormat('yyyy-MM-dd').format(selectedDate!)}',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: 'Payment Type *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  items: ['Cash', 'Credit Card', 'Bank Transfer']
-                      .map(
-                        (type) =>
-                            DropdownMenuItem(value: type, child: Text(type)),
-                      )
-                      .toList(),
-                  value: selectedPaymentType,
-                  onChanged: (value) =>
-                      setState(() => selectedPaymentType = value),
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (selectedProductId == null ||
-                  selectedClientId == null ||
-                  selectedDate == null ||
-                  selectedPaymentType == null) {
-                _showError('All fields are required');
-                return;
-              }
-              await _addOrder(
-                selectedProductId!,
-                selectedClientId!,
-                selectedDate!.toIso8601String(),
-                selectedPaymentType!,
-              );
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('Add', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEditOrderDialog(int index) {
-    final order = orders[index];
-    String? selectedProductId = order['productId']['_id'];
-    String? selectedClientId = order['clientId']['_id'];
-    DateTime? selectedDate = DateTime.parse(order['deliveryDate']);
-    String? selectedPaymentType = order['paymentType'];
-    String? selectedStatus = order['status'];
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text(
-          'Edit Order',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: StatefulBuilder(
-          builder: (context, setState) => SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: 'Product *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  items: products
-                      .where(
-                        (p) =>
-                            p['quantity'] > 0 || p['_id'] == selectedProductId,
-                      )
-                      .map<DropdownMenuItem<String>>(
-                        (product) => DropdownMenuItem<String>(
-                          value: product['_id'] as String,
-                          child: Text(
-                            '${product['name']} (Stock: ${product['quantity']})',
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  value: selectedProductId,
-                  onChanged: (value) =>
-                      setState(() => selectedProductId = value),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: 'Client *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  items: clients
-                      .map<DropdownMenuItem<String>>(
-                        (client) => DropdownMenuItem<String>(
-                          value: client['_id'] as String,
-                          child: Text(client['fullName']),
-                        ),
-                      )
-                      .toList(),
-                  value: selectedClientId,
-                  onChanged: (value) =>
-                      setState(() => selectedClientId = value),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () async {
-                    final pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDate ?? DateTime.now(),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                    );
-                    if (pickedDate != null) {
-                      setState(() => selectedDate = pickedDate);
-                    }
-                  },
-                  child: Text(
-                    selectedDate == null
-                        ? 'Select Delivery Date *'
-                        : 'Delivery: ${DateFormat('yyyy-MM-dd').format(selectedDate!)}',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: 'Payment Type *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  items: ['Cash', 'Credit Card', 'Bank Transfer']
-                      .map(
-                        (type) =>
-                            DropdownMenuItem(value: type, child: Text(type)),
-                      )
-                      .toList(),
-                  value: selectedPaymentType,
-                  onChanged: (value) =>
-                      setState(() => selectedPaymentType = value),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: 'Status *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  items: ['Pending', 'Confirmed', 'Delivered']
-                      .map(
-                        (status) => DropdownMenuItem(
-                          value: status,
-                          child: Text(status),
-                        ),
-                      )
-                      .toList(),
-                  value: selectedStatus,
-                  onChanged: (value) => setState(() => selectedStatus = value),
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (selectedProductId == null ||
-                  selectedClientId == null ||
-                  selectedDate == null ||
-                  selectedPaymentType == null ||
-                  selectedStatus == null) {
-                _showError('All fields are required');
-                return;
-              }
-              await _editOrder(
-                order['_id'],
-                selectedProductId!,
-                selectedClientId!,
-                selectedDate!.toIso8601String(),
-                selectedPaymentType!,
-                selectedStatus!,
-              );
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showError(String message, {bool isError = true}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -536,11 +214,156 @@ class _OrdersPageState extends State<OrdersPage> {
     );
   }
 
+  Future<void> _showAddEditDialog({Map<String, dynamic>? order}) async {
+    String? productId = order?['productId'];
+    String? clientId = order?['clientId'];
+    DateTime? deliveryDate = order != null
+        ? DateTime.parse(order['deliveryDate'])
+        : null;
+    String? paymentType = order?['paymentType'];
+    String? status = order?['status'] ?? 'Pending';
+
+    final dateController = TextEditingController(
+      text: deliveryDate != null
+          ? DateFormat('yyyy-MM-dd').format(deliveryDate)
+          : '',
+    );
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: Text(order == null ? 'Add Order' : 'Edit Order'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'Product'),
+                    value: productId,
+                    items: products
+                        .map(
+                          (p) => DropdownMenuItem<String>(
+                            value: p['_id'] as String,
+                            child: Text(p['name'] as String),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) => setState(() => productId = value),
+                  ),
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'Client'),
+                    value: clientId,
+                    items: clients
+                        .map(
+                          (c) => DropdownMenuItem<String>(
+                            value: c['_id'] as String,
+                            child: Text(c['fullName'] as String),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) => setState(() => clientId = value),
+                  ),
+                  TextFormField(
+                    controller: dateController,
+                    decoration: const InputDecoration(
+                      labelText: 'Delivery Date',
+                    ),
+                    readOnly: true,
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: deliveryDate ?? DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          deliveryDate = picked;
+                          dateController.text = DateFormat(
+                            'yyyy-MM-dd',
+                          ).format(picked);
+                        });
+                      }
+                    },
+                  ),
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'Payment Type',
+                    ),
+                    value: paymentType,
+                    items: ['Cash', 'Credit Card', 'Bank Transfer']
+                        .map(
+                          (type) =>
+                              DropdownMenuItem(value: type, child: Text(type)),
+                        )
+                        .toList(),
+                    onChanged: (value) => setState(() => paymentType = value),
+                  ),
+                  if (order != null)
+                    DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(labelText: 'Status'),
+                      value: status,
+                      items: ['Pending', 'Confirmed', 'Delivered']
+                          .map(
+                            (s) => DropdownMenuItem(value: s, child: Text(s)),
+                          )
+                          .toList(),
+                      onChanged: (value) => setState(() => status = value),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  if (productId == null ||
+                      clientId == null ||
+                      deliveryDate == null ||
+                      paymentType == null) {
+                    _showError('All fields are required');
+                    return;
+                  }
+                  Navigator.pop(context);
+                  if (order == null) {
+                    _addOrder({
+                      'productId': productId,
+                      'clientId': clientId,
+                      'deliveryDate': deliveryDate?.toIso8601String() ?? '',
+                      'paymentType': paymentType,
+                    });
+                  } else {
+                    _editOrder(order['_id'], {
+                      'productId': productId,
+                      'clientId': clientId,
+                      'deliveryDate': deliveryDate?.toIso8601String() ?? '',
+                      'paymentType': paymentType,
+                      'status': status,
+                    });
+                  }
+                },
+                child: const Text('Save', style: TextStyle(color: Colors.teal)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   void initState() {
     super.initState();
-    _fetchProductsAndClients();
     _fetchOrders();
+    _fetchProductsAndClients();
   }
 
   @override
@@ -548,7 +371,7 @@ class _OrdersPageState extends State<OrdersPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Orders Management',
+          'Orders',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.teal,
@@ -599,8 +422,8 @@ class _OrdersPageState extends State<OrdersPage> {
                       vertical: 8,
                     ),
                     title: Text(
-                      'Order for ${order['productName']}',
-                      style: const TextStyle(
+                      order['productName'],
+                      style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -610,7 +433,7 @@ class _OrdersPageState extends State<OrdersPage> {
                       children: [
                         Text('Client: ${order['clientName']}'),
                         Text(
-                          'Delivery: ${DateFormat('yyyy-MM-dd').format(DateTime.parse(order['deliveryDate']))}',
+                          'Date: ${DateFormat('yyyy-MM-dd').format(DateTime.parse(order['deliveryDate']))}',
                         ),
                         Text('Payment: ${order['paymentType']}'),
                         Text('Status: ${order['status']}'),
@@ -621,7 +444,7 @@ class _OrdersPageState extends State<OrdersPage> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.edit, color: Colors.teal),
-                          onPressed: () => _showEditOrderDialog(index),
+                          onPressed: () => _showAddEditDialog(order: order),
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
@@ -638,10 +461,9 @@ class _OrdersPageState extends State<OrdersPage> {
               },
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddOrderDialog,
+        onPressed: () => _showAddEditDialog(),
         backgroundColor: Colors.teal,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: const Icon(Icons.add, color: Colors.white, size: 30),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

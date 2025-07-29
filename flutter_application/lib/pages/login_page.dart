@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application/pages/AdminHomePage.dart';
+import 'package:flutter_application/pages/request_account_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -12,145 +13,128 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  String email = '';
+  String password = '';
   bool isLoading = false;
-  String? errorMessage;
 
-  Future<void> _signIn() async {
-    final email = emailController.text.trim();
-    final password = passwordController.text;
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
 
-    if (email.isEmpty || password.isEmpty) {
-      setState(() {
-        errorMessage = 'Veuillez remplir tous les champs';
-      });
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-      errorMessage = null;
-    });
-
+    setState(() => isLoading = true);
     try {
       final response = await http.post(
         Uri.parse('https://flutter-backend-xhrw.onrender.com/api/users/login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
+        body: jsonEncode({'email': email.trim(), 'password': password}),
       );
-
+      print('Login request: {"email": "$email", "password": "[hidden]"}');
+      print('Login response: ${response.statusCode} - ${response.body}');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final token = data['token'];
-
-        // Save token
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('jwt_token', token);
-
-        // Navigate to AdminHomePage
+        await prefs.setString('jwt_token', data['token']);
+        _showMessage('Connexion réussie', isError: false);
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const AdminHomePage()),
         );
       } else {
-        setState(() {
-          errorMessage =
-              jsonDecode(response.body)['message'] ?? 'Échec de la connexion';
-        });
+        _showMessage(
+          'Erreur: ${jsonDecode(response.body)['message'] ?? response.statusCode}',
+        );
       }
     } catch (e) {
-      setState(() {
-        errorMessage = 'Erreur: $e';
-      });
+      _showMessage('Erreur: $e');
     } finally {
       setState(() => isLoading = false);
     }
   }
 
-  @override
-  void dispose() {
-    emailController.dispose();
-    passwordController.dispose();
-    super.dispose();
+  void _showMessage(String message, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Connexion'),
-        backgroundColor: Colors.grey[700],
+        title: const Text(
+          'Login',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.teal,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(25),
-        child: Column(
-          children: [
-            const SizedBox(height: 100),
-            TextField(
-              controller: emailController,
-              decoration: InputDecoration(
-                labelText: 'Email',
-                border: const OutlineInputBorder(),
-                errorText: errorMessage != null && emailController.text.isEmpty
-                    ? 'Champ requis'
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Email *',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                validator: (value) => value!.isEmpty || !value.contains('@')
+                    ? 'Valid email is required'
                     : null,
+                onChanged: (value) => email = value,
               ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'Mot de passe',
-                border: const OutlineInputBorder(),
-                errorText:
-                    errorMessage != null && passwordController.text.isEmpty
-                    ? 'Champ requis'
-                    : null,
+              const SizedBox(height: 12),
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Password *',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                obscureText: true,
+                validator: (value) =>
+                    value!.isEmpty ? 'Password is required' : null,
+                onChanged: (value) => password = value,
               ),
-            ),
-            if (errorMessage != null &&
-                emailController.text.isNotEmpty &&
-                passwordController.text.isNotEmpty) ...[
               const SizedBox(height: 20),
-              Text(errorMessage!, style: const TextStyle(color: Colors.red)),
-            ],
-            const SizedBox(height: 30),
-            isLoading
-                ? const CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
-                  )
-                : ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 30,
-                        vertical: 14,
+              isLoading
+                  ? const CircularProgressIndicator(color: Colors.teal)
+                  : ElevatedButton(
+                      onPressed: _login,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Login',
+                        style: TextStyle(color: Colors.white),
                       ),
                     ),
-                    onPressed: _signIn,
-                    child: const Text(
-                      'Se connecter',
-                      style: TextStyle(fontSize: 15),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RegisterPage(),
                     ),
-                  ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/forgot');
-              },
-              child: const Text('Mot de passe oublié'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/request_account');
-              },
-              child: const Text('Créer un compte'),
-            ),
-          ],
+                  );
+                },
+                child: const Text(
+                  'No account? Register here',
+                  style: TextStyle(color: Colors.teal),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -14,13 +14,13 @@ class ClientsPage extends StatefulWidget {
 class _ClientsPageState extends State<ClientsPage> {
   List<Map<String, dynamic>> clients = [];
   bool isLoading = false;
-  final String apiUrl = 'https://flutter-backend-xhrw.onrender.com/api/clients';
+  final String apiUrl = 'https://flutter-backend-xhrw.onrender.com';
 
   Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
     if (token == null) {
-      print('No JWT token found in shared_preferences');
+      print('No JWT token found');
       throw Exception('No JWT token found');
     }
     return {
@@ -33,7 +33,10 @@ class _ClientsPageState extends State<ClientsPage> {
     setState(() => isLoading = true);
     try {
       final headers = await _getHeaders();
-      final response = await http.get(Uri.parse(apiUrl), headers: headers);
+      final response = await http.get(
+        Uri.parse('$apiUrl/api/clients'),
+        headers: headers,
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as List;
         setState(() {
@@ -59,38 +62,21 @@ class _ClientsPageState extends State<ClientsPage> {
     }
   }
 
-  Future<void> _addClient(
-    String fullName,
-    String? number,
-    String? email,
-    String fiscalNumber,
-  ) async {
+  Future<void> _addClient(Map<String, dynamic> clientData) async {
     setState(() => isLoading = true);
     try {
       final headers = await _getHeaders();
-      final body = {'fullName': fullName, 'fiscalNumber': fiscalNumber};
-      if (number != null && number.isNotEmpty) body['number'] = number;
-      if (email != null && email.isNotEmpty) body['email'] = email;
-
-      print('Adding client with body: $body'); // Debug
-      print('Headers: $headers'); // Debug
-
+      final body = jsonEncode(clientData);
       final response = await http.post(
-        Uri.parse(apiUrl),
+        Uri.parse('$apiUrl/api/clients'),
         headers: headers,
-        body: jsonEncode(body),
+        body: body,
       );
-
-      print('Response status: ${response.statusCode}'); // Debug
-      print('Response body: ${response.body}'); // Debug
-
       if (response.statusCode == 201) {
         await _fetchClients();
         _showError('Client ajouté avec succès', isError: false);
       } else {
-        _showError(
-          'Error adding client: ${response.statusCode} - ${response.body}',
-        );
+        _showError('Error adding client: ${response.statusCode}');
       }
     } catch (e) {
       _showError('Error adding client: $e');
@@ -99,25 +85,15 @@ class _ClientsPageState extends State<ClientsPage> {
     }
   }
 
-  Future<void> _editClient(
-    String id,
-    String fullName,
-    String? number,
-    String? email,
-    String fiscalNumber,
-  ) async {
+  Future<void> _editClient(String id, Map<String, dynamic> clientData) async {
     setState(() => isLoading = true);
     try {
       final headers = await _getHeaders();
-      final body = {'fullName': fullName, 'fiscalNumber': fiscalNumber};
-      if (number != null && number.isNotEmpty) body['number'] = number;
-      if (email != null && email.isNotEmpty) body['email'] = email;
-
-      print('Editing client with body: $body'); // Debug
+      final body = jsonEncode(clientData);
       final response = await http.put(
-        Uri.parse('$apiUrl/$id'),
+        Uri.parse('$apiUrl/api/clients/$id'),
         headers: headers,
-        body: jsonEncode(body),
+        body: body,
       );
       if (response.statusCode == 200) {
         await _fetchClients();
@@ -137,7 +113,7 @@ class _ClientsPageState extends State<ClientsPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirm Delete'),
-        content: Text('Are you sure you want to delete "$fullName"?'),
+        content: Text('Delete client "$fullName"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -157,7 +133,7 @@ class _ClientsPageState extends State<ClientsPage> {
     try {
       final headers = await _getHeaders();
       final response = await http.delete(
-        Uri.parse('$apiUrl/$id'),
+        Uri.parse('$apiUrl/api/clients/$id'),
         headers: headers,
       );
       if (response.statusCode == 200) {
@@ -173,209 +149,79 @@ class _ClientsPageState extends State<ClientsPage> {
     }
   }
 
-  void _showAddClientDialog() {
-    final fullNameController = TextEditingController();
-    final numberController = TextEditingController();
-    final emailController = TextEditingController();
-    final fiscalNumberController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text(
-          'Add New Client',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: fullNameController,
-                decoration: InputDecoration(
-                  labelText: 'Full Name *',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: numberController,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: 'Number (optional)',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: 'Email (optional)',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: fiscalNumberController,
-                decoration: InputDecoration(
-                  labelText: 'Fiscal Number *',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final fullName = fullNameController.text.trim();
-              final number = numberController.text.trim();
-              final email = emailController.text.trim();
-              final fiscalNumber = fiscalNumberController.text.trim();
-
-              if (fullName.isEmpty || fiscalNumber.isEmpty) {
-                _showError('Full Name and Fiscal Number are required');
-                return;
-              }
-
-              await _addClient(fullName, number, email, fiscalNumber);
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('Add', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEditClientDialog(int index) {
-    final client = clients[index];
-    final fullNameController = TextEditingController(text: client['fullName']);
-    final numberController = TextEditingController(text: client['number']);
-    final emailController = TextEditingController(text: client['email']);
-    final fiscalNumberController = TextEditingController(
-      text: client['fiscalNumber'],
-    );
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text(
-          'Edit Client',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: fullNameController,
-                decoration: InputDecoration(
-                  labelText: 'Full Name *',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: numberController,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: 'Number (optional)',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: 'Email (optional)',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: fiscalNumberController,
-                decoration: InputDecoration(
-                  labelText: 'Fiscal Number *',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final fullName = fullNameController.text.trim();
-              final number = numberController.text.trim();
-              final email = emailController.text.trim();
-              final fiscalNumber = fiscalNumberController.text.trim();
-
-              if (fullName.isEmpty || fiscalNumber.isEmpty) {
-                _showError('Full Name and Fiscal Number are required');
-                return;
-              }
-
-              await _editClient(
-                client['_id'],
-                fullName,
-                number,
-                email,
-                fiscalNumber,
-              );
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showError(String message, {bool isError = true}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: isError ? Colors.red : Colors.green,
         duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _showAddEditDialog({Map<String, dynamic>? client}) async {
+    final fullNameController = TextEditingController(text: client?['fullName']);
+    final numberController = TextEditingController(text: client?['number']);
+    final emailController = TextEditingController(text: client?['email']);
+    final fiscalNumberController = TextEditingController(
+      text: client?['fiscalNumber'],
+    );
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(client == null ? 'Add Client' : 'Edit Client'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: fullNameController,
+                decoration: const InputDecoration(labelText: 'Full Name *'),
+              ),
+              TextFormField(
+                controller: numberController,
+                decoration: const InputDecoration(labelText: 'Phone Number'),
+              ),
+              TextFormField(
+                controller: emailController,
+                decoration: const InputDecoration(labelText: 'Email'),
+              ),
+              TextFormField(
+                controller: fiscalNumberController,
+                decoration: const InputDecoration(labelText: 'Fiscal Number *'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () {
+              if (fullNameController.text.isEmpty ||
+                  fiscalNumberController.text.isEmpty) {
+                _showError('Full name and fiscal number are required');
+                return;
+              }
+              Navigator.pop(context);
+              final clientData = {
+                'fullName': fullNameController.text,
+                'number': numberController.text,
+                'email': emailController.text,
+                'fiscalNumber': fiscalNumberController.text,
+              };
+              if (client == null) {
+                _addClient(clientData);
+              } else {
+                _editClient(client['_id'], clientData);
+              }
+            },
+            child: const Text('Save', style: TextStyle(color: Colors.teal)),
+          ),
+        ],
       ),
     );
   }
@@ -391,11 +237,10 @@ class _ClientsPageState extends State<ClientsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Clients Management',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          'Clients',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.teal,
-        elevation: 4,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
@@ -407,11 +252,7 @@ class _ClientsPageState extends State<ClientsPage> {
         ),
       ),
       body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
-              ),
-            )
+          ? const Center(child: CircularProgressIndicator(color: Colors.teal))
           : clients.isEmpty
           ? const Center(
               child: Column(
@@ -443,7 +284,7 @@ class _ClientsPageState extends State<ClientsPage> {
                       vertical: 8,
                     ),
                     title: Text(
-                      client['fullName'] ?? '',
+                      client['fullName'],
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -452,11 +293,11 @@ class _ClientsPageState extends State<ClientsPage> {
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if ((client['number'] ?? '').isNotEmpty)
-                          Text('Number: ${client['number']}'),
-                        if ((client['email'] ?? '').isNotEmpty)
-                          Text('Email: ${client['email']}'),
                         Text('Fiscal Number: ${client['fiscalNumber']}'),
+                        if (client['email'].isNotEmpty)
+                          Text('Email: ${client['email']}'),
+                        if (client['number'].isNotEmpty)
+                          Text('Phone: ${client['number']}'),
                       ],
                     ),
                     trailing: Row(
@@ -464,7 +305,7 @@ class _ClientsPageState extends State<ClientsPage> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.edit, color: Colors.teal),
-                          onPressed: () => _showEditClientDialog(index),
+                          onPressed: () => _showAddEditDialog(client: client),
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
@@ -478,11 +319,9 @@ class _ClientsPageState extends State<ClientsPage> {
               },
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddClientDialog,
+        onPressed: () => _showAddEditDialog(),
         backgroundColor: Colors.teal,
-        elevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: const Icon(Icons.add, color: Colors.white, size: 30),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

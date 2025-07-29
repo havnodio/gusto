@@ -2,9 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application/pages/Clients_Page.dart';
 import 'package:flutter_application/pages/OrdersPage.dart';
 import 'package:flutter_application/pages/stock_Page.dart';
+import 'package:flutter_application/pages/AccountRequestsPage.dart';
+import 'package:flutter_application/pages/Login_Page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AdminHomePage extends StatelessWidget {
   const AdminHomePage({super.key});
+
+  Future<void> _logout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('jwt_token');
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,6 +27,12 @@ class AdminHomePage extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.teal,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: () => _logout(context),
+          ),
+        ],
       ),
       drawer: Drawer(
         child: ListView(
@@ -30,9 +48,7 @@ class AdminHomePage extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.dashboard),
               title: const Text('Dashboard'),
-              onTap: () {
-                Navigator.pop(context);
-              },
+              onTap: () => Navigator.pop(context),
             ),
             ListTile(
               leading: const Icon(Icons.people),
@@ -50,7 +66,7 @@ class AdminHomePage extends StatelessWidget {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const StockPage()),
+                  MaterialPageRoute(builder: (context) => const ProductsPage()),
                 );
               },
             ),
@@ -64,10 +80,24 @@ class AdminHomePage extends StatelessWidget {
                 );
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.person_add),
+              title: const Text('Account Requests'),
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AccountRequestsPage(),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
-      body: const Center(child: Text('Welcome to Dashboard!')),
+      body: const Center(
+        child: Text('Welcome to Dashboard!', style: TextStyle(fontSize: 18)),
+      ),
     );
   }
 }

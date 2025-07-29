@@ -23,10 +23,10 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const HomePage(),
         '/login': (context) => const LoginPage(),
-        '/request': (context) => const RequestAccountPage(),
+        '/request': (context) => const RegisterPage(),
         '/forgot': (context) => const ForgetPassword(),
         '/admin': (context) => const AdminHomePage(),
-        '/stock': (context) => const StockPage(),
+        '/stock': (context) => const ProductsPage(),
       },
     );
   }
