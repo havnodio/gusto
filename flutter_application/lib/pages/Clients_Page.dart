@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart'; // Added for typography
 import 'package:flutter_application/pages/AdminHomePage.dart';
 
 class ClientsPage extends StatefulWidget {
@@ -112,16 +113,25 @@ class _ClientsPageState extends State<ClientsPage> {
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Delete'),
-        content: Text('Delete client "$fullName"?'),
+        title: Text('Confirm Delete', style: GoogleFonts.poppins()),
+        content: Text(
+          'Delete client "$fullName"?',
+          style: GoogleFonts.poppins(),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(color: Colors.grey),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(
+              'Delete',
+              style: GoogleFonts.poppins(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -152,7 +162,7 @@ class _ClientsPageState extends State<ClientsPage> {
   void _showError(String message, {bool isError = true}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(message, style: GoogleFonts.poppins()),
         backgroundColor: isError ? Colors.red : Colors.green,
         duration: const Duration(seconds: 2),
       ),
@@ -170,26 +180,56 @@ class _ClientsPageState extends State<ClientsPage> {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(client == null ? 'Add Client' : 'Edit Client'),
+        title: Text(
+          client == null ? 'Add Client' : 'Edit Client',
+          style: GoogleFonts.poppins(),
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
                 controller: fullNameController,
-                decoration: const InputDecoration(labelText: 'Full Name *'),
+                decoration: InputDecoration(
+                  labelText: 'Full Name *',
+                  labelStyle: GoogleFonts.poppins(),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: numberController,
-                decoration: const InputDecoration(labelText: 'Phone Number'),
+                decoration: InputDecoration(
+                  labelText: 'Phone Number',
+                  labelStyle: GoogleFonts.poppins(),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: InputDecoration(
+                  labelText: 'Email',
+                  labelStyle: GoogleFonts.poppins(),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: fiscalNumberController,
-                decoration: const InputDecoration(labelText: 'Fiscal Number *'),
+                decoration: InputDecoration(
+                  labelText: 'Fiscal Number *',
+                  labelStyle: GoogleFonts.poppins(),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
             ],
           ),
@@ -197,7 +237,10 @@ class _ClientsPageState extends State<ClientsPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(color: Colors.grey),
+            ),
           ),
           TextButton(
             onPressed: () {
@@ -219,7 +262,7 @@ class _ClientsPageState extends State<ClientsPage> {
                 _editClient(client['_id'], clientData);
               }
             },
-            child: const Text('Save', style: TextStyle(color: Colors.teal)),
+            child: Text('Save', style: GoogleFonts.poppins(color: Colors.teal)),
           ),
         ],
       ),
@@ -235,10 +278,11 @@ class _ClientsPageState extends State<ClientsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // Explicitly set to white as requested
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Clients',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.teal,
         leading: IconButton(
@@ -254,15 +298,18 @@ class _ClientsPageState extends State<ClientsPage> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.teal))
           : clients.isEmpty
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.people_outline, size: 60, color: Colors.grey),
-                  SizedBox(height: 16),
+                  Icon(Icons.people_outline, size: 60, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
                   Text(
                     'No clients available',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      color: Colors.grey[600],
+                    ),
                   ),
                 ],
               ),
@@ -273,42 +320,69 @@ class _ClientsPageState extends State<ClientsPage> {
               itemBuilder: (context, index) {
                 final client = clients[index];
                 return Card(
-                  elevation: 2,
-                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  elevation: 4, // Increased for more depth
+                  margin: const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(15), // Softer corners
                   ),
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
+                      horizontal: 20,
+                      vertical: 12,
                     ),
                     title: Text(
                       client['fullName'],
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
                         fontSize: 16,
+                        color: Colors.black87, // Better contrast
                       ),
                     ),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Fiscal Number: ${client['fiscalNumber']}'),
+                        Text(
+                          'Fiscal Number: ${client['fiscalNumber']}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: Colors.black54,
+                          ),
+                        ),
                         if (client['email'].isNotEmpty)
-                          Text('Email: ${client['email']}'),
+                          Text(
+                            'Email: ${client['email']}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: Colors.black54,
+                            ),
+                          ),
                         if (client['number'].isNotEmpty)
-                          Text('Phone: ${client['number']}'),
+                          Text(
+                            'Phone: ${client['number']}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: Colors.black54,
+                            ),
+                          ),
                       ],
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.teal),
+                          icon: const Icon(
+                            Icons.edit,
+                            color: Colors.teal,
+                            size: 28,
+                          ), // Larger icon
                           onPressed: () => _showAddEditDialog(client: client),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
+                          icon: const Icon(
+                            Icons.delete,
+                            color: Colors.red,
+                            size: 28,
+                          ), // Larger icon
                           onPressed: () =>
                               _deleteClient(client['_id'], client['fullName']),
                         ),
