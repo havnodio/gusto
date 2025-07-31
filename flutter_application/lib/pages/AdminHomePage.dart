@@ -5,13 +5,35 @@ import 'package:flutter_application/pages/stock_Page.dart';
 import 'package:flutter_application/pages/AccountRequestsPage.dart';
 import 'package:flutter_application/pages/Login_Page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_application/pages/DashboardPage.dart';
 
-class AdminHomePage extends StatelessWidget {
+class AdminHomePage extends StatefulWidget {
   const AdminHomePage({super.key});
+
+  @override
+  State<AdminHomePage> createState() => _AdminHomePageState();
+}
+
+class _AdminHomePageState extends State<AdminHomePage> {
+  String? userRole;
+
+  @override
+  void initState() {
+    super.initState();
+    loadUserRole();
+  }
+
+  Future<void> loadUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userRole = prefs.getString('role'); // ykoun "admin" wela "user"
+    });
+  }
 
   Future<void> _logout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('jwt_token');
+    await prefs.remove('role');
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -48,8 +70,16 @@ class AdminHomePage extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.dashboard),
               title: const Text('Dashboard'),
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const DashboardPage(),
+                  ),
+                );
+              },
             ),
+
             ListTile(
               leading: const Icon(Icons.people),
               title: const Text('Clients'),
@@ -80,18 +110,19 @@ class AdminHomePage extends StatelessWidget {
                 );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.person_add),
-              title: const Text('Account Requests'),
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AccountRequestsPage(),
-                  ),
-                );
-              },
-            ),
+            if (userRole == 'admin') // ===> Hedhi l condition
+              ListTile(
+                leading: const Icon(Icons.person_add),
+                title: const Text('Account Requests'),
+                onTap: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AccountRequestsPage(),
+                    ),
+                  );
+                },
+              ),
           ],
         ),
       ),

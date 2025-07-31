@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application/pages/AdminHomePage.dart';
 import 'package:flutter_application/pages/request_account_page.dart';
+import 'package:jwt_decoder/jwt_decoder.dart'; // Import en haut
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -32,13 +33,31 @@ class _LoginPageState extends State<LoginPage> {
       print('Login response: ${response.statusCode} - ${response.body}');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        final token = data['token'];
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('jwt_token', data['token']);
+
+        await prefs.setString('jwt_token', token);
+
+        // Decode le token
+        Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
+        String role = decodedToken['role'];
+        await prefs.setString('role', role);
+
         _showMessage('Connexion réussie', isError: false);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const AdminHomePage()),
-        );
+
+        // Redirection selon rôle
+        if (role == 'admin') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const AdminHomePage()),
+          );
+        } else {
+          // Tu peux créer une page spéciale user si tu veux
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const AdminHomePage()),
+          );
+        }
       } else {
         _showMessage(
           'Erreur: ${jsonDecode(response.body)['message'] ?? response.statusCode}',
