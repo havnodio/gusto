@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'pages/home_page.dart';
-import 'pages/login_page.dart';
-import 'pages/request_account_page.dart';
-import 'pages/forget_password.dart';
-import 'pages/adminhomepage.dart';
-import 'pages/stock_page.dart';
+import 'pages/home/home_page.dart';
+import 'pages/home/login_page.dart';
+import 'pages/home/AccountRequestsPage.dart';
+import 'pages/home/forget_password.dart';
 
 void main() {
   runApp(const MyApp());
@@ -25,8 +23,6 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/request': (context) => const RegisterPage(),
         '/forgot': (context) => const ForgetPassword(),
-        '/admin': (context) => const AdminHomePage(),
-        '/stock': (context) => const ProductsPage(),
       },
     );
   }

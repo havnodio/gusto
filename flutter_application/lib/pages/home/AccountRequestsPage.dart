@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter_application/pages/Login_Page.dart';
+import 'package:flutter_application/pages/home/Login_Page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});

@@ -54,7 +54,7 @@ class _HomePageState extends State<HomePage>
                 child: SlideTransition(
                   position: _slideAnimation,
                   child: Image.asset(
-                    'assets/gusto.png',
+                    'assets/gusto1.png',
                     width: 400,
                     height: 200,
                     fit: BoxFit.contain,
