@@ -1191,318 +1191,286 @@ class _CreateOrderFormState extends State<CreateOrderForm> {
   Widget build(BuildContext context) {
     return Form(
       key: _formKey,
-      child: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : (_clients.isEmpty && _products.isEmpty)
-          ? Center(
+      child: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('No clients or products found'),
-                  TextButton(onPressed: _loadData, child: const Text('Retry')),
-                ],
-              ),
-            )
-          : Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // === Client Dropdown ===
-                        const Text(
-                          'Select Client',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<Client>(
-                          value: _selectedClient,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            hintText: 'Choose a client',
-                          ),
-                          validator: (value) =>
-                              value == null ? 'Please select a client' : null,
-                          items: _clients.map((client) {
-                            return DropdownMenuItem(
-                              value: client,
-                              child: Text(
-                                '${client.fullName} (${client.email})',
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (client) =>
-                              setState(() => _selectedClient = client),
-                        ),
-                        const SizedBox(height: 20),
-
-                        // === Delivery Date ===
-                        const Text(
-                          'Delivery Date',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _deliveryDateController,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            hintText: 'Select delivery date',
-                            suffixIcon: const Icon(Icons.calendar_today),
-                          ),
-                          readOnly: true,
-                          validator: (value) => _selectedDeliveryDate == null
-                              ? 'Please select a delivery date'
-                              : null,
-                          onTap: _selectDeliveryDate,
-                        ),
-                        const SizedBox(height: 20),
-
-                        // === Payment Type ===
-                        const Text(
-                          'Payment Type',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          value: _selectedPaymentType,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          items: ['Cash', 'Credit Card', 'Bank Transfer'].map((
-                            type,
-                          ) {
-                            return DropdownMenuItem(
-                              value: type,
-                              child: Text(type),
-                            );
-                          }).toList(),
-                          onChanged: (type) =>
-                              setState(() => _selectedPaymentType = type!),
-                        ),
-                        const SizedBox(height: 20),
-
-                        // === Product Section ===
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Products',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            ElevatedButton.icon(
-                              onPressed: _showProductSelector,
-                              icon: const Icon(Icons.add, size: 16),
-                              label: const Text('Add Product'),
-                              style: ElevatedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-
-                        if (_selectedProducts.isEmpty)
-                          Container(
-                            padding: const EdgeInsets.all(32),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[300]!),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Center(
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.shopping_cart_outlined,
-                                    size: 48,
-                                    color: Colors.grey[400],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'No products added yet',
-                                    style: TextStyle(color: Colors.grey[600]),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                        else
-                          ...List.generate(_selectedProducts.length, (index) {
-                            final orderProduct = _selectedProducts[index];
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: Colors.blue.withOpacity(0.1),
-                                  child: Text(
-                                    orderProduct.product.name
-                                        .substring(0, 1)
-                                        .toUpperCase(),
-                                    style: const TextStyle(
-                                      color: Colors.blue,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                title: Text(orderProduct.product.name),
-                                subtitle: Text(
-                                  '${orderProduct.product.category} • \$${orderProduct.price.toStringAsFixed(2)} each',
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      onPressed: () => _updateProductQuantity(
-                                        index,
-                                        orderProduct.quantity - 1,
-                                      ),
-                                      icon: const Icon(Icons.remove),
-                                      constraints: const BoxConstraints(
-                                        minWidth: 32,
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[100],
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        orderProduct.quantity.toString(),
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    IconButton(
-                                      onPressed: () => _updateProductQuantity(
-                                        index,
-                                        orderProduct.quantity + 1,
-                                      ),
-                                      icon: const Icon(Icons.add),
-                                      constraints: const BoxConstraints(
-                                        minWidth: 32,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      onPressed: () => _removeProduct(index),
-                                      icon: const Icon(
-                                        Icons.delete,
-                                        color: Colors.red,
-                                      ),
-                                      constraints: const BoxConstraints(
-                                        minWidth: 32,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }),
-
-                        if (_selectedProducts.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.blue.withOpacity(0.3),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Total Amount:',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  '\$${_totalAmount.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+                  // Client Selection
+                  const Text(
+                    'Select Client',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<Client>(
+                    value: _selectedClient,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      hintText: 'Choose a client',
+                    ),
+                    validator: (value) =>
+                        value == null ? 'Please select a client' : null,
+                    items: _clients.map((client) {
+                      return DropdownMenuItem(
+                        value: client,
+                        child: Text('${client.fullName} (${client.email})'),
+                      );
+                    }).toList(),
+                    onChanged: (client) =>
+                        setState(() => _selectedClient = client),
+                  ),
 
-                // === Create Order Button ===
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.2),
-                        blurRadius: 10,
-                        offset: const Offset(0, -5),
+                  const SizedBox(height: 20),
+
+                  // Delivery Date
+                  const Text(
+                    'Delivery Date',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _deliveryDateController,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      hintText: 'Select delivery date',
+                      suffixIcon: const Icon(Icons.calendar_today),
+                    ),
+                    readOnly: true,
+                    validator: (value) => _selectedDeliveryDate == null
+                        ? 'Please select a delivery date'
+                        : null,
+                    onTap: _selectDeliveryDate,
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Payment Type
+                  const Text(
+                    'Payment Type',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: _selectedPaymentType,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    items: ['Cash', 'Credit Card', 'Bank Transfer'].map((type) {
+                      return DropdownMenuItem(value: type, child: Text(type));
+                    }).toList(),
+                    onChanged: (type) =>
+                        setState(() => _selectedPaymentType = type!),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Products Section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Products',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: _showProductSelector,
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Add Product'),
+                        style: ElevatedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _createOrder,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  const SizedBox(height: 12),
+
+                  // Selected Products List
+                  if (_selectedProducts.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.shopping_cart_outlined,
+                              size: 48,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'No products added yet',
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          ],
                         ),
                       ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text(
-                              'Create Order',
-                              style: TextStyle(
-                                fontSize: 16,
+                    )
+                  else
+                    ...List.generate(_selectedProducts.length, (index) {
+                      final orderProduct = _selectedProducts[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.blue.withOpacity(0.1),
+                            child: Text(
+                              orderProduct.product.name
+                                  .substring(0, 1)
+                                  .toUpperCase(),
+                              style: const TextStyle(
+                                color: Colors.blue,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+                          ),
+                          title: Text(orderProduct.product.name),
+                          subtitle: Text(
+                            '${orderProduct.product.category} • \${orderProduct.price.toStringAsFixed(2)} each',
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                onPressed: () => _updateProductQuantity(
+                                  index,
+                                  orderProduct.quantity - 1,
+                                ),
+                                icon: const Icon(Icons.remove),
+                                constraints: const BoxConstraints(minWidth: 32),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  orderProduct.quantity.toString(),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () => _updateProductQuantity(
+                                  index,
+                                  orderProduct.quantity + 1,
+                                ),
+                                icon: const Icon(Icons.add),
+                                constraints: const BoxConstraints(minWidth: 32),
+                              ),
+                              IconButton(
+                                onPressed: () => _removeProduct(index),
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                constraints: const BoxConstraints(minWidth: 32),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+
+                  if (_selectedProducts.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Total Amount:',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '\${_totalAmount.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+
+          // Create Order Button
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, -5),
                 ),
               ],
             ),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _createOrder,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text(
+                        'Create Order',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
