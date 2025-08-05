@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_application/pages/inside_admin/ProductsManagementPage.dart';
 import 'package:flutter_application/pages/inside_admin/ClientsPage.dart';
-import 'package:flutter_application/pages/inside_admin/OrdersPage.dart';
+import 'package:flutter_application/pages/inside_admin/ordersPage.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -336,7 +336,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
                 Icons.receipt_long,
                 [Color(0xFFF093FB), Color(0xFFF5576C)],
                 _cardAnimations[1],
-                () => _navigateTo(context, OrdersPage()),
+                () => _navigateTo(context, OrderPage()),
               ),
               _buildManagementCard(
                 "Clients",

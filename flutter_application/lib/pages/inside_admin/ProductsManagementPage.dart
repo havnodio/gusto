@@ -133,7 +133,7 @@ class _ProductsPageState extends State<ProductsPage> {
                         'https://flutter-backend-xhrw.onrender.com/api/products',
                       )
                     : Uri.parse(
-                        'https://flutter-backend-xhrw.onrender.com/api/products/${product!['_id']}',
+                        'https://flutter-backend-xhrw.onrender.com/api/products/${product['_id']}',
                       );
 
                 final method = isNew ? http.post : http.put;
@@ -241,7 +241,7 @@ class _ProductsPageState extends State<ProductsPage> {
             ),
             const SizedBox(width: 20),
             Text(
-              '\DT${product['price'].toStringAsFixed(2)}',
+              'DT${product['price'].toStringAsFixed(2)}',
               style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
             ),
             const SizedBox(width: 16),
