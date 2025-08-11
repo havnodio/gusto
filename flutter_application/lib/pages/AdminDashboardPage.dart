@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_application/pages/inside_admin/ProductsManagementPage.dart';
 import 'package:flutter_application/pages/inside_admin/ClientsPage.dart';
-import 'package:flutter_application/pages/inside_admin/ordersPage.dart';
+import 'package:flutter_application/pages/inside_admin/orderpage.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});

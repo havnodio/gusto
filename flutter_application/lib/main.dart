@@ -4,6 +4,7 @@ import 'pages/home/home_page.dart';
 import 'pages/home/login_page.dart';
 import 'pages/home/AccountRequestsPage.dart';
 import 'pages/home/forget_password.dart';
+import 'pages/inside_admin/orderpage.dart';
 
 void main() {
   runApp(const MyApp());
@@ -23,6 +24,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/request': (context) => const RegisterPage(),
         '/forgot': (context) => const ForgetPassword(),
+        '/orders': (context) => const OrderPage(),
       },
     );
   }
