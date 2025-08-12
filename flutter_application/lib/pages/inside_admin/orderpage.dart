@@ -913,7 +913,7 @@ class _OrderPageState extends State<OrderPage> {
                   ),
                 ),
                 Text(
-                  '\DT ${order.totalAmount.toStringAsFixed(2)}',
+                  'DT ${order.totalAmount.toStringAsFixed(2)}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -1092,7 +1092,7 @@ class OrderDetails extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Text('\DT ${(p.quantity * p.price).toStringAsFixed(2)}'),
+                  Text('DT ${(p.quantity * p.price).toStringAsFixed(2)}'),
                 ],
               ),
             ),
@@ -1541,7 +1541,7 @@ class _CreateOrderFormState extends State<CreateOrderForm> {
                             child: ListTile(
                               title: Text(product.name),
                               subtitle: Text(
-                                'Stock: $available | Price: \DT ${product.price.toStringAsFixed(2)}',
+                                'Stock: $available | Price: DT ${product.price.toStringAsFixed(2)}',
                                 style: TextStyle(
                                   color: available > 0
                                       ? Colors.green
@@ -1600,7 +1600,7 @@ class _CreateOrderFormState extends State<CreateOrderForm> {
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                             Text(
-                              '\DT ${_totalAmount.toStringAsFixed(2)}',
+                              'DT ${_totalAmount.toStringAsFixed(2)}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
